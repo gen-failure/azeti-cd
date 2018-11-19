@@ -52,6 +52,7 @@ class Site extends Component {
               size="large"
               value={this.props.dashboard.dateRange}
               onChange={(date) => this.onTimeChange(date)}
+              allowClear={false}
             />
           </Col>
         </Row>

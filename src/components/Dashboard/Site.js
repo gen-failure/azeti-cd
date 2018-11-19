@@ -2,7 +2,8 @@ import React, {Component} from 'react';
 
 import { inject, observer } from 'mobx-react';
 import { Select, DatePicker, Alert, Row, Col } from 'antd';
-import Chart from './Chart';
+
+import Sensor from './Sensor';
 
 @inject('dashboard', 'nav')
 @observer
@@ -59,15 +60,10 @@ class Site extends Component {
         <Row>
           {this.props.dashboard.selectedSensors.map((guid) => {
             return this.props.dashboard.sensorsData[guid].results.map((data, index) => {
-              return (
-                <Col key={`${guid}-${index}`}>
-                  {data.series && <Chart data={data} title={this.sensorName(guid)} />} 
-                  {(!data.series && !data.error) && <Alert type="warning" message={`No data available for ${this.sensorName(guid)}`} description="There are no data available for this time range" /> }
-                  {(!data.series && data.error) && <Alert type="error" message="There is nothing wrong with your computer" description={data.error} /> }
-                </Col>
-              )
+              return <Sensor key={`${guid}-${index}`} data={data} title={this.sensorName(guid)}/>
             })
-          })}
+          })
+          }
         </Row>
       </div>
     );

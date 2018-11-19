@@ -2,7 +2,6 @@ import React from 'react';
 import { action, observable} from 'mobx';
 
 import authenticatedOnly from './../decorators/authenticatedOnly';
-import interceptApiError from './../decorators/interceptApiError';
 
 import Dashboard from '../components/Dashboard';
 
@@ -36,7 +35,6 @@ export default class DashboardStore {
 
   @action
   @authenticatedOnly
-  @interceptApiError
   async showSite(guid, sensor, from, to) {
     try {
       let sites = [];

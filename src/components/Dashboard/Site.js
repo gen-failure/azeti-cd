@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 
 import { inject, observer } from 'mobx-react';
-import { Select, DatePicker, Alert, Row, Col } from 'antd';
+import { Select, DatePicker, Row, Col } from 'antd';
 
 import Sensor from './Sensor';
 

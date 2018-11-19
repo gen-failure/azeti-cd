@@ -19,7 +19,7 @@ export default class AuthStore {
   }
 
   onAttach() {
-    this.addRoute('/signin', (params,{redirectTo}) => (this.showLoginForm(redirectTo)));
+    this.addRoute('/signin', (params,{redirectTo, message,type}) => (this.showLoginForm(redirectTo, message, type)));
   }
 
   @action async login(username, password, hostname) {
@@ -62,11 +62,30 @@ export default class AuthStore {
     }
   } 
   
-  @action showLoginForm(redirectTo) {
+  @action showLoginForm(redirectTo, message="", type="") {
     this.redirectTo = redirectTo;
+    this.authenticationMessage=message;
+    this.authenticationMessageType=type;
     this.stores.ui.renderComponent(<LoginForm />);
   }
 
+  @action signoff() {
+    this.authenticated=false;
+    this.OAuthToken=null;
+  }
+
+  async get(url) {
+    try {
+      return await this.httpClient.get(url)
+    } catch(e) {
+      if (e.response && e.response.status === 401) {
+        this.changePath(`/signin?redirectTo=${this.stores.nav.path}${this.stores.nav.query}&message=Auth token expired&type=warning`);
+        this.signoff();
+        this.stores.ui.hideLoader()
+      }
+      throw(e);
+    }
+  }
 }
 
 

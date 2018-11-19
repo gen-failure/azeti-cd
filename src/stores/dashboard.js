@@ -2,6 +2,7 @@ import React from 'react';
 import { action, observable} from 'mobx';
 
 import authenticatedOnly from './../decorators/authenticatedOnly';
+import interceptApiError from './../decorators/interceptApiError';
 
 import Dashboard from '../components/Dashboard';
 
@@ -35,49 +36,74 @@ export default class DashboardStore {
 
   @action
   @authenticatedOnly
-  async showSite(guid, sensors, from, to) {
-    this.stores.ui.showLoader();
-    if (!this.selectedSite || this.selectedSite.guid !== guid) {
-      this.sites = await this._getSites();
-      this.selectedSite = this.sites.find((site) => { return site.guid === guid})
-      this.sensors = await this._getSensors(this.selectedSite.guid);
-    }
-    this.stores.ui.setHeadline(this.selectedSite.name);
-    if (typeof sensors === 'string') sensors = [sensors];
-    if (Array.isArray(sensors)) {
-      this.selectedSensors = sensors; 
-    } else {
-      this.selectedSensors = [];
-    }
-    if (from && to) {
-      this.dateRange = [moment.unix(Number(from)), moment.unix(Number(to))]
-    } else {
-      this.dateRange = [moment().subtract(90,'d'), moment()];
-    }
+  @interceptApiError
+  async showSite(guid, sensor, from, to) {
+    try {
+      let sites = [];
+      let sensors = [];
+      let selectedSite = null;
+      let selectedSensors = [];
+      let sensorsData = {}
+      let dateRange = [];
 
-    //FIXME: This is a temporary solution only, consider getting all sensor values in one query
-    for (let i in this.selectedSensors) {
-      let guid = this.selectedSensors[i];
-      this.sensorsData[guid] = await this._getSensorData(guid)
-    }
+      this.stores.ui.showLoader();
+      if (!this.selectedSite || this.selectedSite.guid !== guid) {
+        sites = await this._getSites();
+        selectedSite = sites.find((site) => { return site.guid === guid})
+        sensors = await this._getSensors(selectedSite.guid);
+      } else {
+        sites = this.sites;
+        selectedSite = this.selectedSite
+        sensors = this.sensors;
+      }
 
-    this.stores.ui.renderComponent(<Dashboard />)
-    this.stores.ui.hideLoader();
+      if (typeof sensor === 'string') sensor = [sensor];
+      if (Array.isArray(sensor)) {
+        selectedSensors = sensor; 
+      } else {
+        selectedSensors = [];
+      }
+
+      if (from && to) {
+        dateRange = [moment.unix(Number(from)), moment.unix(Number(to))]
+      } else {
+        dateRange = [moment().subtract(90,'d'), moment()];
+      }
+
+      //FIXME: This is a temporary solution only, consider getting all sensor values in one query
+      for (let i in selectedSensors) {
+        let guid = selectedSensors[i];
+        sensorsData[guid] = await this._getSensorData(guid, dateRange[0], dateRange[1]);
+      }
+
+      this.sites = sites;
+      this.sensors = sensors;
+      this.selectedSite = selectedSite;
+      this.selectedSensors = selectedSensors;
+      this.sensorsData = sensorsData;
+      this.dateRange = dateRange;
+
+      this.stores.ui.setHeadline(this.selectedSite.name);
+      this.stores.ui.renderComponent(<Dashboard />)
+      this.stores.ui.hideLoader();
+    } catch(e) {
+      console.log(e);
+    }
   }
 
   async _getSites() {
-    let query = await this.stores.auth.httpClient.get('/sites');
+    let query = await this.stores.auth.get('/sites');
     return query.data
    
   }
 
   async _getSensors(guid) {
-    let query = await this.stores.auth.httpClient.get(`/sensors?siteUuid=${guid}`);
+    let query = await this.stores.auth.get(`/sensors?siteUuid=${guid}`);
     return query.data;
   }
 
-  async _getSensorData(guid) {
-    let query = await this.stores.auth.httpClient.get(`/timeseries/queryUnmapped?q=SELECT time,value FROM "Value" WHERE sensor_guid = '${guid}' AND time > '${this.dateRange[0].utc().format()}' AND time < '${this.dateRange[1].utc().format()}'`);
+  async _getSensorData(guid, from, to) {
+    let query = await this.stores.auth.get(`/timeseries/queryUnmapped?q=SELECT time,value FROM "Value" WHERE sensor_guid = '${guid}' AND time > '${from.utc().format()}' AND time < '${to.utc().format()}'`);
     return query.data; 
   }
 }

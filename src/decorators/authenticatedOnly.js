@@ -6,7 +6,8 @@ export default function(target, name, descriptor) {
         if (!this.stores.auth.authenticated) throw new Error("not authorized");
         return descriptor.value.apply(this,arguments)
       } catch(e) {
-        this.changePath(`/signin?redirectTo=${this.stores.nav.path}${this.stores.nav.query}`);
+        let redirect = encodeURIComponent(`${this.stores.nav.path}${this.stores.nav.query}`);
+        this.changePath(`/signin?redirectTo=${redirect}`);
       }
     }
   }

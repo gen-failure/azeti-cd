@@ -63,7 +63,7 @@ export default class AuthStore {
   } 
   
   @action showLoginForm(redirectTo, message="", type="") {
-    this.redirectTo = redirectTo;
+    this.redirectTo = decodeURIComponent(redirectTo);
     this.authenticationMessage=message;
     this.authenticationMessageType=type;
     this.stores.ui.renderComponent(<LoginForm />);
@@ -79,7 +79,8 @@ export default class AuthStore {
       return await this.httpClient.get(url)
     } catch(e) {
       if (e.response && e.response.status === 401) {
-        this.changePath(`/signin?redirectTo=${this.stores.nav.path}${this.stores.nav.query}&message=Auth token expired&type=warning`);
+        let redirect = decodeURIComponent(`${this.stores.nav.path}${this.stores.nav.query}&message=Auth token expired&type=warning`);
+        this.changePath(`/signin?redirectTo=${redirect}`);
         this.signoff();
         this.stores.ui.hideLoader()
       }
